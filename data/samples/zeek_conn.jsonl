@@ -1,0 +1,2 @@
+{"ts":"2025-07-01T05:31:23Z","uid":"Cabc123","id.orig_h":"10.0.2.15","id.resp_h":"10.0.2.7","proto":"tcp","service":"rdp"}
+{"ts":"2025-07-01T05:32:10Z","uid":"Cdef456","id.orig_h":"10.0.2.15","id.resp_h":"10.0.2.99","proto":"tcp","service":"smb"}
