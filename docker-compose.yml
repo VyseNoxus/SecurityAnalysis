@@ -2,7 +2,7 @@ services:
   ollama:
     image: ollama/ollama:latest
     container_name: ollama
-    ports: ["11434:11434"]
+    ports: ["3001:11434"]
     volumes:
       - ollama:/root/.ollama
     # Use the ollama CLI (present in the image) to verify the daemon is reachable

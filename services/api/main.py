@@ -16,6 +16,8 @@ app = FastAPI(title="GenAI Incident Assistant", version="0.1.0")
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
 ]
 
 app.add_middleware(
@@ -44,10 +46,19 @@ async def ingest(body: IngestBody):
     if not parser:
         return {"error": "unknown source"}
     docs = []
+    seen = set()
+    import hashlib, datetime
     for line in body.items:
         norm = parser(line)
         text = f"{norm.get('timestamp')} {norm.get('event_type')} {norm.get('message')}"
-        docs.append({"text": text, "metadata": {"source": body.source, **{k:v for k,v in norm.items() if k!='raw'}}})
+        if text in seen:
+            continue
+        seen.add(text)
+        # Add timestamp and hash to metadata
+        hashval = hashlib.sha256(text.encode()).hexdigest()
+        now = datetime.datetime.utcnow().isoformat() + 'Z'
+        metadata = {"source": body.source, "ingest_time": now, "hash": hashval, **{k:v for k,v in norm.items() if k!='raw' and v is not None}}
+        docs.append({"text": text, "metadata": metadata})
     ids = await add_documents(docs)
     return {"ingested": len(ids)}
 
@@ -61,3 +72,6 @@ async def analyze(body: AnalyzeBody):
         "mitre_matches": heur,
         "evidence": hits
     }
+
+
+

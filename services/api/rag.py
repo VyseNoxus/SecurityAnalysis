@@ -3,7 +3,12 @@ from typing import List, Dict, Any
 import chromadb
 from chromadb.config import Settings
 
-OLLAMA = os.getenv("OLLAMA_HOST", "http://ollama:11434")
+_ollama_env = os.getenv("OLLAMA_HOST", "http://ollama:11434")
+# Ensure the OLLAMA host string includes a scheme
+if not _ollama_env.startswith("http://") and not _ollama_env.startswith("https://"):
+    OLLAMA = "http://" + _ollama_env
+else:
+    OLLAMA = _ollama_env
 GEN_MODEL = os.getenv("GEN_MODEL", "mistral")
 EMBED_MODEL = os.getenv("EMBED_MODEL", "nomic-embed-text")
 CHROMA_HOST = os.getenv("CHROMA_HOST", "http://chroma:8000").split("://")[-1].split(":")[0]
@@ -25,14 +30,18 @@ with open(os.path.join(os.path.dirname(__file__), "mitre_map.yml"), "r") as f:
 
 async def embed(text: str) -> List[float]:
     async with httpx.AsyncClient(timeout=60) as session:
-        r = await session.post(f"{OLLAMA}/api/embeddings", json={"model": EMBED_MODEL, "input": text})
-        r.raise_for_status()
-        data = r.json()
-        # Ollama returns {"embedding":[...]} for single input
-        return data["embedding"]
+        try:
+            r = await session.post(f"{OLLAMA}/api/embeddings", json={"model": EMBED_MODEL, "prompt": text})
+            r.raise_for_status()
+            data = r.json()
+            # Ollama returns {"embedding":[...]} for single input
+            return data["embedding"]
+        except Exception as e:
+            print(f"[ERROR] Embedding failed for text: {text[:80]}... Error: {e}")
+            return []
 
 async def embed_many(texts: List[str]) -> List[List[float]]:
-    return [await embed(t) for t in texts]
+    return await asyncio.gather(*(embed(t) for t in texts))
 
 async def add_documents(docs: List[Dict[str, Any]]):
     ids = [str(uuid.uuid4()) for _ in docs]
@@ -43,8 +52,20 @@ async def add_documents(docs: List[Dict[str, Any]]):
     return ids
 
 async def search_similar(query: str, k: int = 6):
-    qvec = await embed(query)
-    res = collection.query(query_embeddings=[qvec], n_results=k)
+    try:
+        qvec = await embed(query)
+    except Exception as e:
+        print(f"[ERROR] Embedding failed for query: {query[:80]}... Error: {e}")
+        return []
+    # If the embedding is empty or invalid, return no hits
+    if not qvec:
+        print(f"[ERROR] Empty embedding for query: {query[:80]}...")
+        return []
+    try:
+        res = collection.query(query_embeddings=[qvec], n_results=k)
+    except Exception as e:
+        print(f"[ERROR] ChromaDB query failed for query: {query[:80]}... Error: {e}")
+        return []
     hits = []
     for i in range(len(res["ids"][0])):
         hits.append({
@@ -75,10 +96,10 @@ def mitre_match(text: str) -> List[Dict[str, str]]:
 
 ANALYST_PROMPT = """You are an incident response assistant.
 Given: (1) a fresh INCIDENT LOG, (2) RELATED EVIDENCE EXCERPTS, produce:
-- a 4-8 line summary of what likely happened,
-- the most relevant MITRE ATT&CK techniques (IDs) with 1-liner rationale for each,
+- a concise 4-8 line summary of what likely happened,
 - prioritized next steps (bulleted), concrete and actionable, low-regret.
 Be concise, cite evidence by [Doc#] where appropriate.
+IMPORTANT: Do NOT list or enumerate MITRE ATT&CK technique IDs in your response — MITRE matches will be provided separately by a deterministic heuristic.
 """
 
 def build_prompt(incident: str, snippets: List[Dict[str, Any]]) -> str:
