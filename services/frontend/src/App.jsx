@@ -2,10 +2,12 @@ import React, { useState } from 'react'
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
 export default function App(){
+
   const [text,setText] = useState('')
   const [res,setRes] = useState(null)
   const [busy,setBusy] = useState(false)
   const [error,setError] = useState(null)
+  const [ingestStatus,setIngestStatus] = useState(null)
 
   const analyze = async () => {
     setBusy(true)
@@ -31,6 +33,35 @@ export default function App(){
     }
   }
 
+
+  // Ingest evidence handler
+  const ingestEvidence = async () => {
+    setIngestStatus(null)
+    let items
+    try {
+      items = JSON.parse(text)
+      if (!Array.isArray(items)) items = [items]
+    } catch (e) {
+      setIngestStatus('Invalid JSON: ' + e.message)
+      return
+    }
+    try {
+      const r = await fetch(`${API}/ingest`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items })
+      })
+      if (!r.ok) {
+        const txt = await r.text().catch(()=>null)
+        throw new Error(`API returned ${r.status} ${r.statusText}${txt ? `: ${txt}` : ''}`)
+      }
+      const data = await r.json()
+      setIngestStatus(`Ingested ${data.ingested} log(s).`)
+    } catch (err) {
+      setIngestStatus('Ingest error: ' + (err.message || String(err)))
+    }
+  }
+
   return (
     <div className="container">
       <div className="card">
@@ -38,7 +69,7 @@ export default function App(){
           <div className="logo">IR</div>
           <div>
             <h1>GenAI Incident Assistant</h1>
-            <div className="subtitle">Paste a suspicious log line or a small snippet to analyze</div>
+            <div className="subtitle">Paste a suspicious log line or a small snippet to analyze or ingest</div>
           </div>
         </div>
 
@@ -47,10 +78,15 @@ export default function App(){
         </div>
 
         <div className="controls">
-          <button className="btn" onClick={analyze} disabled={busy || !text.trim()}>{busy ? <span className="spinner" /> : 'Analyze'}</button>
-          <button className="btn secondary" onClick={()=>{setText(''); setRes(null); setError(null)}}>Clear</button>
+          <button className="btn" onClick={analyze} disabled={busy || !text.trim()}>Analyze</button>
+          <button className="btn secondary" onClick={()=>{setText(''); setRes(null); setError(null); setIngestStatus(null)}}>Clear</button>
+          <button className="btn" style={{marginLeft:10}} onClick={ingestEvidence} disabled={!text.trim() || !!res || busy}>Ingest</button>
           <div style={{marginLeft:'auto'}} className="muted">Model: <span className="chip">Vite + Ollama</span></div>
         </div>
+
+        {ingestStatus && (
+          <div className="muted" style={{marginTop:8}}>{ingestStatus}</div>
+        )}
 
         {busy && (
           <div className="loading"><span className="spinner" /> Analyzing log…</div>
