@@ -10,7 +10,7 @@ https://datasets.uwf.edu/data/UWF-ZeekData22/csv/
 # How To Run
 1. docker-compose up -d --build
 2. docker compose exec ollama bash -lc "ollama pull mistral && ollama pull nomic-embed-text"
-3. open http://localhost:5173 [Web UI]
+3. open http://localhost:3000 [Web UI]
 
 # Understanding files
 1. rag.py: Turns log into a vector
