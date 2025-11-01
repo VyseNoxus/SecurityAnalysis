@@ -1,4 +1,4 @@
-XGBoost Model
+One-Class SVM Model
 
 # Dataset
 https://www.kaggle.com/datasets/chethuhn/network-intrusion-dataset
