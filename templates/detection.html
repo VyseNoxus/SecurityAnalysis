@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Live Detection - Intrusion Detection</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            min-height: 100vh;
+            padding: 20px;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: #2d2d2d;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: 1px solid #404040;
+        }
+
+        h1 {
+            color: #ffffff;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #b0b0b0;
+            font-size: 1.1em;
+        }
+
+        .nav-button {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: #5a9fd4;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .nav-button:hover {
+            background: #4a8fc4;
+            transform: translateY(-2px);
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: 1px solid #404040;
+        }
+
+        .card h2 {
+            color: #333333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 3px solid #5a9fd4;
+            padding-bottom: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        select {
+            padding: 10px 15px;
+            border: 2px solid #4a4a4a;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            background: #f9f9f9;
+            color: #333;
+            transition: all 0.3s;
+        }
+
+        select:hover {
+            border-color: #5a9fd4;
+        }
+
+        .upload-section {
+            background: #f9f9f9;
+            border: 2px dashed #5a9fd4;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .upload-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .upload-input {
+            display: none;
+        }
+
+        .upload-button {
+            background: #5a9fd4;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-block;
+        }
+
+        .upload-button:hover {
+            background: #4a8fc4;
+            transform: translateY(-2px);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #5a9fd4, #4a8fc4);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .detection-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: #3a3a3a;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            color: white;
+        }
+
+        .stat-card.attacks {
+            background: #8b0000;
+        }
+
+        .stat-card.benign {
+            background: #2d5016;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+
+        .detection-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .detection-table th,
+        .detection-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .detection-table th {
+            background: #f0f0f0;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .detection-table tr:hover {
+            background: #f9f9f9;
+        }
+
+        .prediction-attack {
+            color: #dc2626;
+            font-weight: bold;
+        }
+
+        .prediction-benign {
+            color: #16a34a;
+            font-weight: bold;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #b0b0b0;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Live Detection</h1>
+            <p class="subtitle">Real-time Intrusion Detection</p>
+            <a href="/" class="nav-button">← Back to Model Comparison</a>
+        </header>
+
+        <div class="card">
+            <h2>Detection Configuration</h2>
+            <div class="control-group">
+                <label for="detectionModelSelect">Select Detection Model:</label>
+                <select id="detectionModelSelect">
+                    <option value="xgboost">XGBoost (Recommended - 99.71% Accuracy)</option>
+                    <option value="lstm">LSTM (80.80% Accuracy)</option>
+                    <option value="ocsvm">One-Class SVM (0.80% Accuracy)</option>
+                </select>
+            </div>
+            
+            <div class="upload-section">
+                <h3>Upload Network Traffic Data</h3>
+                <p style="color: #666; margin-bottom: 20px;">Upload a CSV file containing network traffic features (same format as CICIDS dataset)</p>
+                <input type="file" id="fileUpload" class="upload-input" accept=".csv" onchange="handleFileUpload(event)">
+                <label for="fileUpload" class="upload-button">Choose File</label>
+                <p id="fileName" style="margin-top: 15px; color: #666;"></p>
+                <div id="uploadProgress" class="progress-bar" style="display: none;">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="detectionResults" style="display: none;">
+            <div class="detection-stats">
+                <div class="stat-card">
+                    <div class="stat-label">Total Samples</div>
+                    <div class="stat-value" id="totalSamples">0</div>
+                </div>
+                <div class="stat-card attacks">
+                    <div class="stat-label">Attacks Detected</div>
+                    <div class="stat-value" id="attacksDetected">0</div>
+                </div>
+                <div class="stat-card benign">
+                    <div class="stat-label">Benign Traffic</div>
+                    <div class="stat-value" id="benignTraffic">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Avg. Confidence</div>
+                    <div class="stat-value" id="avgConfidence">0%</div>
+                </div>
+            </div>
+
+            <!-- Attack Types Card -->
+            <div class="card" id="attackTypesCard" style="display: none;">
+                <h2>Attack Types Detected</h2>
+                <div id="attackTypesList" style="margin-top: 15px;">
+                </div>
+            </div>
+
+            <!-- Visualization Cards -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 30px; margin-bottom: 30px;">
+                <div class="card">
+                    <h2>Prediction Distribution</h2>
+                    <div class="chart-container">
+                        <canvas id="predictionPieChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2>Confidence Distribution</h2>
+                    <div class="chart-container">
+                        <canvas id="confidenceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Detection Results (Top 100 Samples)</h2>
+                <div style="max-height: 500px; overflow-y: auto;">
+                    <table class="detection-table">
+                        <thead>
+                            <tr>
+                                <th>Sample #</th>
+                                <th>Prediction</th>
+                                <th>Confidence</th>
+                                <th>Actual Label</th>
+                                <th>Source IP</th>
+                                <th>Destination IP</th>
+                                <th>Flow Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detectionTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Detection Timeline</h2>
+                <div class="chart-container">
+                    <canvas id="detectionTimelineChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let charts = {
+            timeline: null,
+            pie: null,
+            confidence: null
+        };
+
+        // File upload handler
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            document.getElementById('fileName').textContent = `Selected: ${file.name}`;
+            document.getElementById('uploadProgress').style.display = 'block';
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('model', document.getElementById('detectionModelSelect').value);
+            
+            // Simulate progress
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += 10;
+                document.getElementById('progressFill').style.width = progress + '%';
+                if (progress >= 100) {
+                    clearInterval(progressInterval);
+                    performDetection(formData);
+                }
+            }, 200);
+        }
+
+        // Perform detection
+        async function performDetection(formData) {
+            try {
+                const response = await fetch('/api/detect', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.error) {
+                    alert('Error: ' + result.error);
+                    return;
+                }
+                
+                // Update stats
+                document.getElementById('totalSamples').textContent = result.total_samples.toLocaleString();
+                document.getElementById('attacksDetected').textContent = result.attacks_detected.toLocaleString();
+                document.getElementById('benignTraffic').textContent = result.benign_traffic.toLocaleString();
+                document.getElementById('avgConfidence').textContent = result.avg_confidence + '%';
+                
+                // Display attack types if available
+                if (result.attack_types && Object.keys(result.attack_types).length > 0) {
+                    const attackTypesCard = document.getElementById('attackTypesCard');
+                    const attackTypesList = document.getElementById('attackTypesList');
+                    attackTypesCard.style.display = 'block';
+                    
+                    let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">';
+                    for (const [type, count] of Object.entries(result.attack_types)) {
+                        const percentage = ((count / result.total_samples) * 100).toFixed(2);
+                        html += `
+                            <div style="background: #f0f0f0; padding: 15px; border-radius: 8px; border-left: 4px solid #dc2626;">
+                                <div style="font-weight: 600; color: #333; margin-bottom: 5px;">${type}</div>
+                                <div style="font-size: 1.5em; font-weight: bold; color: #dc2626;">${count.toLocaleString()}</div>
+                                <div style="color: #666; font-size: 0.9em;">${percentage}% of total</div>
+                            </div>
+                        `;
+                    }
+                    html += '</div>';
+                    attackTypesList.innerHTML = html;
+                }
+                
+                // Populate table (first 100 rows)
+                const tbody = document.getElementById('detectionTableBody');
+                tbody.innerHTML = '';
+                result.predictions.slice(0, 100).forEach((pred, idx) => {
+                    const row = tbody.insertRow();
+                    const isCorrect = (pred.prediction === 'ATTACK' && pred.actual_label !== 'BENIGN' && pred.actual_label !== 'Unknown') ||
+                                     (pred.prediction === 'BENIGN' && (pred.actual_label === 'BENIGN' || pred.actual_label === 'Unknown'));
+                    
+                    // Color code confidence
+                    let confColor = '#16a34a'; // green for high
+                    if (pred.confidence < 70) confColor = '#dc2626'; // red for low
+                    else if (pred.confidence < 90) confColor = '#f59e0b'; // yellow for medium
+                    
+                    row.innerHTML = `
+                        <td>${idx + 1}</td>
+                        <td class="${pred.prediction === 'ATTACK' ? 'prediction-attack' : 'prediction-benign'}">${pred.prediction}</td>
+                        <td><strong style="color: ${confColor};">${pred.confidence}%</strong></td>
+                        <td style="color: ${isCorrect ? '#16a34a' : '#dc2626'};">${pred.actual_label || 'Unknown'}</td>
+                        <td>${pred.source_ip || 'N/A'}</td>
+                        <td>${pred.dest_ip || 'N/A'}</td>
+                        <td>${pred.flow_duration || 'N/A'}</td>
+                    `;
+                });
+                
+                // Show results
+                document.getElementById('detectionResults').style.display = 'block';
+                
+                // Create visualizations
+                createPredictionPieChart(result.attacks_detected, result.benign_traffic);
+                createConfidenceChart(result.confidence_distribution);
+                createDetectionTimeline(result.timeline, result.timeline_labels);
+                
+            } catch (error) {
+                alert('Error performing detection: ' + error.message);
+                console.error(error);
+            }
+        }
+
+        function createPredictionPieChart(attacks, benign) {
+            if (charts.pie) charts.pie.destroy();
+            
+            const ctx = document.getElementById('predictionPieChart').getContext('2d');
+            charts.pie = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Attack', 'Benign'],
+                    datasets: [{
+                        data: [attacks, benign],
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.8)',
+                            'rgba(34, 197, 94, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(239, 68, 68, 1)',
+                            'rgba(34, 197, 94, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Detection Distribution'
+                        }
+                    }
+                }
+            });
+        }
+
+        function createConfidenceChart(confidenceData) {
+            if (charts.confidence) charts.confidence.destroy();
+            
+            const ctx = document.getElementById('confidenceChart').getContext('2d');
+            charts.confidence = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(confidenceData),
+                    datasets: [{
+                        label: 'Number of Predictions',
+                        data: Object.values(confidenceData),
+                        backgroundColor: 'rgba(90, 159, 212, 0.8)',
+                        borderColor: 'rgba(90, 159, 212, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Confidence Level Distribution'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Count'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Confidence Range'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createDetectionTimeline(timeline, labels) {
+            if (charts.timeline) charts.timeline.destroy();
+            
+            const ctx = document.getElementById('detectionTimelineChart').getContext('2d');
+            
+            // Create very sparse labels - only show 8 evenly spaced labels
+            const totalPoints = timeline.length;
+            const numLabels = Math.min(8, totalPoints);
+            const step = Math.floor(totalPoints / (numLabels - 1));
+            
+            const cleanLabels = timeline.map((_, idx) => {
+                // Only show labels at specific intervals
+                if (idx === 0 || idx === totalPoints - 1) {
+                    // First and last always show
+                    return `${idx}k`;
+                } else if (idx % step === 0) {
+                    // Show every step
+                    return `${idx}k`;
+                } else {
+                    return ''; // Empty string - no label
+                }
+            });
+            
+            charts.timeline = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: cleanLabels,
+                    datasets: [{
+                        label: 'Attacks Detected (Smoothed)',
+                        data: timeline,
+                        borderColor: 'rgba(239, 68, 68, 1)',
+                        backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: 'rgba(239, 68, 68, 1)',
+                        borderWidth: 2.5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Attack Detection Over Time (Smoothed Moving Average)',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            },
+                            padding: {
+                                top: 10,
+                                bottom: 20
+                            }
+                        },
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    const idx = context[0].dataIndex;
+                                    if (labels && labels[idx]) {
+                                        return `Sample Range: ${labels[idx]}`;
+                                    }
+                                    const start = idx * 1000;
+                                    const end = (idx + 1) * 1000;
+                                    return `Samples: ${start.toLocaleString()}-${end.toLocaleString()}`;
+                                },
+                                label: function(context) {
+                                    return `Attacks: ~${context.parsed.y} (smoothed)`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Attacks per 1000 Samples',
+                                font: {
+                                    size: 13,
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                precision: 0
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Position (thousands of samples)',
+                                font: {
+                                    size: 13,
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                maxRotation: 0,
+                                minRotation: 0,
+                                autoSkip: false,
+                                font: {
+                                    size: 11
+                                },
+                                padding: 8,
+                                callback: function(value, index) {
+                                    // Only show non-empty labels
+                                    return this.getLabelForValue(index) || undefined;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

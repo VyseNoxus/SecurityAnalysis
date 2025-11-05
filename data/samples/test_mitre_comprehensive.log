@@ -1,5 +1,0 @@
-2025-10-15 08:15:23 [AUTH] Failed password for invalid user admin from 10.0.0.5 port 22 ssh2
-2025-10-15 08:15:24 [AUTH] Failed password for invalid user root from 10.0.0.5 port 22 ssh2
-2025-10-15 08:15:25 [AUTH] authentication failure for user testuser from 10.0.0.5
-2025-10-15 08:15:26 [AUTH] Failed password for invalid user oracle from 10.0.0.5 port 22 ssh2
-2025-10-15 08:16:12 [EXEC] powershell.exe -EncodedCommand JABzAD

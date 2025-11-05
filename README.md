@@ -1,32 +1,113 @@
-Testing For Now
+# CICIDS Network Intrusion Detection
 
-# Dataset
-https://datasets.uwf.edu/data/UWF-ZeekData22/csv/
+Machine learning-based brute force attack detection using the CICIDS2017 Tuesday-WorkingHours dataset.
 
-# Software Requirements
-1. Ollama Mistral:latest
-2. Docker Desktop
+## Project Overview
 
-# How To Run
-1. docker-compose up -d --build
-2. docker compose exec ollama bash -lc "ollama pull mistral && ollama pull nomic-embed-text"
-3. open http://localhost:3000 [Web UI]
+This project compares three machine learning approaches for detecting SSH/FTP brute force attacks:
+- **XGBoost** - Gradient boosting classifier
+- **One-Class SVM** - Anomaly detection (trained only on benign traffic)
+- **LSTM** - Deep learning for sequential pattern recognition
 
-# Understanding files
-1. rag.py: Turns log into a vector
-2. mitre_map.yml: For mapping MITRE ATT&CK techniques
-3. parsers folder: Normalizes a different log type into a consistent JSON structure
+The goal is to evaluate which approach best detects brute force attacks and generalizes to unseen attack variants.
 
-# env file
-# URLs the services use to talk to each other
-OLLAMA_HOST=http://ollama:11434
-CHROMA_HOST=http://chroma:8000
-API_PORT=8080
-WEB_PORT=5173
+## Dataset
 
-# Models (pull them after containers start)
-GEN_MODEL=mistral
-EMBED_MODEL=all-minilm
+The project uses the CICIDS2017 Tuesday-WorkingHours.pcap_ISCX.csv dataset containing:
+- **Benign traffic**: Normal network activity
+- **FTP-Patator**: FTP brute force attacks
+- **SSH-Patator**: SSH brute force attacks
 
-# Chroma collection name
-CHROMA_COLLECTION=ir_logs
+## Setup
+
+1. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+2. Prepare the dataset:
+```bash
+python data_preparation.py
+```
+
+## Training Models
+
+Train each model individually:
+
+```bash
+# XGBoost
+python train_xgboost.py
+
+# One-Class SVM
+python train_ocsvm.py
+
+# LSTM
+python train_lstm.py
+```
+
+## Evaluation
+
+Each training script evaluates the model on:
+- **Training set** - Model performance on training data
+- **Test set (seen attacks)** - Performance on attack types seen during training
+- **Test set (unseen attacks)** - Performance on unseen attack variants (zero-day simulation)
+
+Compare results:
+```bash
+python compare_models.py
+```
+
+## Web Dashboard
+
+Launch the interactive web dashboard to visualize and compare model results:
+
+```bash
+python app.py
+```
+
+Then open your browser to `http://localhost:5000`
+
+The dashboard features:
+- **Model Comparison View**: Compare all three models side-by-side
+- **Individual Model View**: Deep dive into each model's performance
+- **Interactive Charts**: Accuracy, F1-Score, Precision, Recall comparisons
+- **Generalization Analysis**: See how models perform on unseen attacks
+- **Confusion Matrices**: Visual representation of classification results
+- **Dropdown Selection**: Easily switch between models
+
+## Project Structure
+
+```
+SecurityAnalysis/
+├── data/
+│   └── processed/              # Processed datasets
+│       ├── train.csv           # Training set (60%)
+│       ├── test_seen.csv       # Test set - seen attacks (20%)
+│       ├── test_unseen.csv     # Test set - unseen attacks (20%)
+│       └── test_full.csv       # Complete test set
+├── models/                     # Trained models
+├── results/                    # Results and visualizations
+│   ├── xgboost_results.json    # XGBoost metrics
+│   ├── ocsvm_results.json      # One-Class SVM metrics
+│   └── lstm_results.json       # LSTM metrics
+├── templates/                  # Flask web templates
+│   └── index.html              # Dashboard UI
+├── Tuesday-WorkingHours.pcap_ISCX.csv  # Raw dataset
+├── data_preparation.py         # Data cleaning and splitting
+├── feature_engineering.py      # Feature preprocessing
+├── train_xgboost.py           # XGBoost training
+├── train_ocsvm.py             # One-Class SVM training
+├── train_lstm.py              # LSTM training
+├── compare_models.py          # Model comparison
+├── app.py                     # Flask web dashboard
+├── requirements.txt           # Python dependencies
+└── README.md                  # This file
+```
+
+## Evaluation Metrics
+
+- **Accuracy**: Overall correctness
+- **Precision**: True positives / (True positives + False positives)
+- **Recall**: True positives / (True positives + False negatives)
+- **F1-Score**: Harmonic mean of precision and recall
+- **Generalization Gap**: Performance difference between seen and unseen attacks

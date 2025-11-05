@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML Model Comparison Dashboar - Intrusion Detection</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            min-height: 100vh;
+            padding: 20px;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: #2d2d2d;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: 1px solid #404040;
+        }
+
+        h1 {
+            color: #ffffff;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #b0b0b0;
+            font-size: 1.1em;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            border-bottom: 2px solid #404040;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            color: #b0b0b0;
+            font-size: 1em;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .tab:hover {
+            color: #ffffff;
+            background: rgba(90, 159, 212, 0.1);
+        }
+
+        .tab.active {
+            color: #5a9fd4;
+            border-bottom-color: #5a9fd4;
+        }
+
+        #comparisonTab, #detectionTab {
+            width: 100%;
+            min-height: 400px;
+            padding-top: 20px;
+        }
+
+        .controls {
+            background: #2d2d2d;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: 1px solid #404040;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        label {
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        select {
+            padding: 10px 15px;
+            border: 2px solid #4a4a4a;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            transition: all 0.3s;
+        }
+
+        select:hover {
+            border-color: #5a9fd4;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: 1px solid #404040;
+        }
+
+        .card h2 {
+            color: #333333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 3px solid #5a9fd4;
+            padding-bottom: 10px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 500px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .metric-box {
+            background: #3a3a3a;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid #4a4a4a;
+        }
+
+        .metric-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 5px;
+            color: #e0e0e0;
+        }
+
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+            color: #333333;
+        }
+
+        .comparison-table th {
+            background: #f5f5f5;
+            color: #333333;
+            font-weight: 600;
+        }
+
+        .comparison-table tr:hover {
+            background: #f9f9f9;
+        }
+
+        .best-score {
+            background: #4ade80;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2em;
+            color: #b0b0b0;
+        }
+
+        .error {
+            background: #3d2020;
+            border: 2px solid #8b0000;
+            border-radius: 10px;
+            padding: 20px;
+            color: #ff6b6b;
+            margin: 20px 0;
+        }
+
+        .confusion-matrix {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            max-width: 450px;
+            margin: 20px auto;
+        }
+
+        .cm-cell {
+            background: #f5f5f5;
+            padding: 30px;
+            text-align: center;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            color: #333333;
+        }
+
+        .cm-cell.tp { background: #d4f4dd; border-color: #4ade80; }
+        .cm-cell.fp { background: #fff4d4; border-color: #fbbf24; }
+        .cm-cell.fn { background: #fdd4d4; border-color: #f87171; }
+        .cm-cell.tn { background: #d4e4f4; border-color: #60a5fa; }
+
+        .cm-label {
+            font-size: 0.95em;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .cm-value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        /* Detection Page Styles */
+        .upload-section {
+            background: #f9f9f9;
+            border: 2px dashed #5a9fd4;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .upload-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .upload-input {
+            display: none;
+        }
+
+        .upload-button {
+            background: #5a9fd4;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-button:hover {
+            background: #4a8fc4;
+            transform: translateY(-2px);
+        }
+
+        .detection-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: #3a3a3a;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            color: white;
+        }
+
+        .stat-card.attacks {
+            background: #8b0000;
+        }
+
+        .stat-card.benign {
+            background: #2d5016;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+
+        .detection-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .detection-table th,
+        .detection-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .detection-table th {
+            background: #f5f5f5;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .detection-table tr:hover {
+            background: #f9f9f9;
+        }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .badge.attack {
+            background: #fdd4d4;
+            color: #8b0000;
+        }
+
+        .badge.benign {
+            background: #d4f4dd;
+            color: #2d5016;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #5a9fd4;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>ML Model Comparison Dashboard</h1>
+            <p class="subtitle">SSH/FTP Brute Force Attack Detection</p>
+            
+            <a href="/detection" class="nav-button" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background: #5a9fd4; color: white; text-decoration: none; border-radius: 8px; transition: all 0.3s; font-weight: 500;">
+                Go to Live Detection
+            </a>
+        </header>
+
+        <!-- Model Comparison Tab Content -->
+        <div id="comparisonTab" style="display: block;">
+            <div class="controls">
+                <div class="control-group">
+                    <label for="modelSelect">Select Model:</label>
+                    <select id="modelSelect" onchange="updateModelView()">
+                        <option value="all">All Models (Comparison)</option>
+                        <option value="xgboost">XGBoost</option>
+                        <option value="ocsvm">One-Class SVM</option>
+                        <option value="lstm">LSTM</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="metricSelect">Focus Metric:</label>
+                    <select id="metricSelect" onchange="updateCharts()">
+                        <option value="accuracy">Accuracy</option>
+                        <option value="f1">F1-Score</option>
+                        <option value="precision">Precision</option>
+                        <option value="recall">Recall</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="loadingMessage" class="loading">
+                Loading model results...
+            </div>
+
+        <div id="errorMessage" class="error" style="display: none;"></div>
+
+        <div id="comparisonView" class="dashboard" style="display: none;">
+            <div class="card">
+                <h2>Performance Comparison</h2>
+                <div class="chart-container">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Generalization Analysis</h2>
+                <div class="chart-container">
+                    <canvas id="generalizationChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card" style="grid-column: 1 / -1;">
+                <h2>Detailed Metrics Comparison</h2>
+                <table class="comparison-table" id="comparisonTable">
+                    <thead>
+                        <tr>
+                            <th>Model</th>
+                            <th>Train Accuracy</th>
+                            <th>Test Seen Accuracy</th>
+                            <th>Test Unseen Accuracy</th>
+                            <th>Train F1</th>
+                            <th>Test Seen F1</th>
+                            <th>Test Unseen F1</th>
+                        </tr>
+                    </thead>
+                    <tbody id="comparisonTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="singleModelView" class="dashboard" style="display: none;">
+            <div class="card">
+                <h2 id="modelTitle">Model Performance</h2>
+                <div class="metrics-grid">
+                    <div class="metric-box">
+                        <div class="metric-label">Training Accuracy</div>
+                        <div class="metric-value" id="trainAccuracy">-</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label">Test Seen Accuracy</div>
+                        <div class="metric-value" id="testSeenAccuracy">-</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label">Test Unseen Accuracy</div>
+                        <div class="metric-value" id="testUnseenAccuracy">-</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label">F1-Score (Unseen)</div>
+                        <div class="metric-value" id="unseenF1">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Performance Across Datasets</h2>
+                <div class="chart-container">
+                    <canvas id="singleModelChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Confusion Matrix (Test Unseen)</h2>
+                <div class="confusion-matrix" id="confusionMatrix">
+                    <div class="cm-cell tp">
+                        <div class="cm-label">True Positive</div>
+                        <div class="cm-value" id="cmTP">-</div>
+                    </div>
+                    <div class="cm-cell fp">
+                        <div class="cm-label">False Positive</div>
+                        <div class="cm-value" id="cmFP">-</div>
+                    </div>
+                    <div class="cm-cell fn">
+                        <div class="cm-label">False Negative</div>
+                        <div class="cm-value" id="cmFN">-</div>
+                    </div>
+                    <div class="cm-cell tn">
+                        <div class="cm-label">True Negative</div>
+                        <div class="cm-value" id="cmTN">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Precision vs Recall</h2>
+                <div class="chart-container">
+                    <canvas id="precisionRecallChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <!-- End Model Comparison Tab -->
+
+    <script>
+        let modelResults = {};
+        let charts = {};
+
+        // Fetch results on page load
+        async function loadResults() {
+            try {
+                const response = await fetch('/api/results');
+                modelResults = await response.json();
+                
+                document.getElementById('loadingMessage').style.display = 'none';
+                
+                // Check if any results are available
+                const hasResults = Object.values(modelResults).some(r => r !== null);
+                if (!hasResults) {
+                    showError('No model results found. Please train the models first.');
+                    return;
+                }
+                
+                updateModelView();
+            } catch (error) {
+                document.getElementById('loadingMessage').style.display = 'none';
+                showError('Error loading results: ' + error.message);
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function updateModelView() {
+            const selectedModel = document.getElementById('modelSelect').value;
+            
+            if (selectedModel === 'all') {
+                showComparisonView();
+            } else {
+                showSingleModelView(selectedModel);
+            }
+        }
+
+        function showComparisonView() {
+            document.getElementById('comparisonView').style.display = 'grid';
+            document.getElementById('singleModelView').style.display = 'none';
+            updateComparisonCharts();
+        }
+
+        async function updateComparisonCharts() {
+            const response = await fetch('/api/comparison');
+            const comparison = await response.json();
+            
+            const metric = document.getElementById('metricSelect').value;
+            
+            // Performance Comparison Chart
+            if (charts.comparison) charts.comparison.destroy();
+            const ctx1 = document.getElementById('comparisonChart').getContext('2d');
+            charts.comparison = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: comparison.models,
+                    datasets: [
+                        {
+                            label: 'Training',
+                            data: comparison.metrics[`train_${metric}`],
+                            backgroundColor: 'rgba(102, 126, 234, 0.8)'
+                        },
+                        {
+                            label: 'Test Seen',
+                            data: comparison.metrics[`test_seen_${metric}`],
+                            backgroundColor: 'rgba(118, 75, 162, 0.8)'
+                        },
+                        {
+                            label: 'Test Unseen',
+                            data: comparison.metrics[`test_unseen_${metric}`],
+                            backgroundColor: 'rgba(237, 100, 166, 0.8)'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `${metric.toUpperCase()} Comparison Across Models`
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Generalization Chart
+            if (charts.generalization) charts.generalization.destroy();
+            const ctx2 = document.getElementById('generalizationChart').getContext('2d');
+            
+            const generalizationGap = comparison.models.map((_, idx) => {
+                const gap = Math.abs(comparison.metrics[`test_seen_${metric}`][idx] - 
+                           comparison.metrics[`test_unseen_${metric}`][idx]);
+                return Math.round(gap * 100) / 100; // Round to 2 decimal places
+            });
+            
+            charts.generalization = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: comparison.models,
+                    datasets: [{
+                        label: 'Generalization Gap (%)',
+                        data: generalizationGap,
+                        backgroundColor: 'rgba(239, 68, 68, 0.8)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Generalization Gap (Lower is Better)'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toFixed(2) + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Update comparison table
+            updateComparisonTable(comparison);
+        }
+
+        function updateComparisonTable(comparison) {
+            const tbody = document.getElementById('comparisonTableBody');
+            tbody.innerHTML = '';
+            
+            comparison.models.forEach((model, idx) => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td><strong>${model}</strong></td>
+                    <td>${comparison.metrics.train_accuracy[idx].toFixed(2)}%</td>
+                    <td>${comparison.metrics.test_seen_accuracy[idx].toFixed(2)}%</td>
+                    <td>${comparison.metrics.test_unseen_accuracy[idx].toFixed(2)}%</td>
+                    <td>${comparison.metrics.train_f1[idx].toFixed(2)}%</td>
+                    <td>${comparison.metrics.test_seen_f1[idx].toFixed(2)}%</td>
+                    <td>${comparison.metrics.test_unseen_f1[idx].toFixed(2)}%</td>
+                `;
+            });
+        }
+
+        function showSingleModelView(modelName) {
+            document.getElementById('comparisonView').style.display = 'none';
+            document.getElementById('singleModelView').style.display = 'grid';
+            
+            const modelData = modelResults[modelName];
+            if (!modelData) {
+                showError(`${modelName.toUpperCase()} model results not found. Please train the model first.`);
+                return;
+            }
+
+            document.getElementById('modelTitle').textContent = `${modelName.toUpperCase()} Performance`;
+            
+            // Update metrics
+            document.getElementById('trainAccuracy').textContent = 
+                (modelData.train.accuracy * 100).toFixed(2) + '%';
+            document.getElementById('testSeenAccuracy').textContent = 
+                (modelData.test_seen.accuracy * 100).toFixed(2) + '%';
+            document.getElementById('testUnseenAccuracy').textContent = 
+                (modelData.test_unseen.accuracy * 100).toFixed(2) + '%';
+            document.getElementById('unseenF1').textContent = 
+                (modelData.test_unseen.f1_score * 100).toFixed(2) + '%';
+
+            // Update confusion matrix
+            const cm = modelData.test_unseen.confusion_matrix;
+            document.getElementById('cmTN').textContent = cm[0][0];
+            document.getElementById('cmFP').textContent = cm[0][1];
+            document.getElementById('cmFN').textContent = cm[1][0];
+            document.getElementById('cmTP').textContent = cm[1][1];
+
+            // Performance chart
+            if (charts.singleModel) charts.singleModel.destroy();
+            const ctx = document.getElementById('singleModelChart').getContext('2d');
+            charts.singleModel = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Accuracy', 'Precision', 'Recall', 'F1-Score'],
+                    datasets: [
+                        {
+                            label: 'Training',
+                            data: [
+                                modelData.train.accuracy * 100,
+                                modelData.train.precision * 100,
+                                modelData.train.recall * 100,
+                                modelData.train.f1_score * 100
+                            ],
+                            backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                            borderColor: 'rgba(102, 126, 234, 1)',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Test Seen',
+                            data: [
+                                modelData.test_seen.accuracy * 100,
+                                modelData.test_seen.precision * 100,
+                                modelData.test_seen.recall * 100,
+                                modelData.test_seen.f1_score * 100
+                            ],
+                            backgroundColor: 'rgba(118, 75, 162, 0.2)',
+                            borderColor: 'rgba(118, 75, 162, 1)',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Test Unseen',
+                            data: [
+                                modelData.test_unseen.accuracy * 100,
+                                modelData.test_unseen.precision * 100,
+                                modelData.test_unseen.recall * 100,
+                                modelData.test_unseen.f1_score * 100
+                            ],
+                            backgroundColor: 'rgba(237, 100, 166, 0.2)',
+                            borderColor: 'rgba(237, 100, 166, 1)',
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+
+            // Precision-Recall chart
+            if (charts.precisionRecall) charts.precisionRecall.destroy();
+            const ctx2 = document.getElementById('precisionRecallChart').getContext('2d');
+            charts.precisionRecall = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: ['Training', 'Test Seen', 'Test Unseen'],
+                    datasets: [
+                        {
+                            label: 'Precision',
+                            data: [
+                                modelData.train.precision * 100,
+                                modelData.test_seen.precision * 100,
+                                modelData.test_unseen.precision * 100
+                            ],
+                            backgroundColor: 'rgba(59, 130, 246, 0.8)'
+                        },
+                        {
+                            label: 'Recall',
+                            data: [
+                                modelData.train.recall * 100,
+                                modelData.test_seen.recall * 100,
+                                modelData.test_unseen.recall * 100
+                            ],
+                            backgroundColor: 'rgba(16, 185, 129, 0.8)'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateCharts() {
+            const selectedModel = document.getElementById('modelSelect').value;
+            if (selectedModel === 'all') {
+                updateComparisonCharts();
+            }
+        }
+
+        // Load results when page loads
+        loadResults();
+    </script>
+    </div>
+</body>
+</html>
