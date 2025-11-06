@@ -7,13 +7,22 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import json
 
-def load_results():
-    results = {
-        'XGBoost': {},
-        'One-Class SVM': {},
-        'LSTM': {}
+def load_results(base_dir='results'):
+    results = {}
+    model_files = {
+        'XGBoost': 'xgboost_results.json',
+        'One-Class SVM': 'ocsvm_results.json',
+        'LSTM': 'lstm_results.json'
     }
+    
+    for model_name, file_name in model_files.items():
+        path = os.path.join(base_dir, file_name)
+        if os.path.exists(path):
+            with open(path, 'r') as f:
+                results[model_name] = json.load(f)
+    
     return results
 
 def create_comparison_table(results):
@@ -23,12 +32,12 @@ def create_comparison_table(results):
         if model_results:
             row = {
                 'Model': model_name,
-                'Train Acc': model_results.get('train_accuracy', 0),
-                'Test Seen Acc': model_results.get('seen_accuracy', 0),
-                'Test Unseen Acc': model_results.get('unseen_accuracy', 0),
-                'Train F1': model_results.get('train_f1', 0),
-                'Test Seen F1': model_results.get('seen_f1', 0),
-                'Test Unseen F1': model_results.get('unseen_f1', 0),
+                'Train Acc': model_results.get('train', {}).get('accuracy', 0),
+                'Test Seen Acc': model_results.get('test_seen', {}).get('accuracy', 0),
+                'Test Unseen Acc': model_results.get('test_unseen', {}).get('accuracy', 0),
+                'Train F1': model_results.get('train', {}).get('f1_score', 0),
+                'Test Seen F1': model_results.get('test_seen', {}).get('f1_score', 0),
+                'Test Unseen F1': model_results.get('test_unseen', {}).get('f1_score', 0),
                 'Training Time (s)': model_results.get('training_time', 0)
             }
             data.append(row)
@@ -44,9 +53,9 @@ def plot_comparison(results, save_dir='results'):
     fig.suptitle('Model Performance Comparison', fontsize=16, fontweight='bold')
     
     # Accuracy comparison
-    train_acc = [results[m].get('train_accuracy', 0) for m in models]
-    seen_acc = [results[m].get('seen_accuracy', 0) for m in models]
-    unseen_acc = [results[m].get('unseen_accuracy', 0) for m in models]
+    train_acc = [results[m].get('train', {}).get('accuracy', 0) for m in models]
+    seen_acc = [results[m].get('test_seen', {}).get('accuracy', 0) for m in models]
+    unseen_acc = [results[m].get('test_unseen', {}).get('accuracy', 0) for m in models]
     
     x = np.arange(len(models))
     width = 0.25
@@ -62,9 +71,9 @@ def plot_comparison(results, save_dir='results'):
     axes[0, 0].grid(True, alpha=0.3)
     
     # F1-Score comparison
-    train_f1 = [results[m].get('train_f1', 0) for m in models]
-    seen_f1 = [results[m].get('seen_f1', 0) for m in models]
-    unseen_f1 = [results[m].get('unseen_f1', 0) for m in models]
+    train_f1 = [results[m].get('train', {}).get('f1_score', 0) for m in models]
+    seen_f1 = [results[m].get('test_seen', {}).get('f1_score', 0) for m in models]
+    unseen_f1 = [results[m].get('test_unseen', {}).get('f1_score', 0) for m in models]
     
     axes[0, 1].bar(x - width, train_f1, width, label='Training', alpha=0.8)
     axes[0, 1].bar(x, seen_f1, width, label='Test Seen', alpha=0.8)
@@ -77,8 +86,8 @@ def plot_comparison(results, save_dir='results'):
     axes[0, 1].grid(True, alpha=0.3)
     
     # Generalization gap
-    acc_gap = [abs(results[m].get('seen_accuracy', 0) - results[m].get('unseen_accuracy', 0)) for m in models]
-    f1_gap = [abs(results[m].get('seen_f1', 0) - results[m].get('unseen_f1', 0)) for m in models]
+    acc_gap = [abs(results[m].get('test_seen', {}).get('accuracy', 0) - results[m].get('test_unseen', {}).get('accuracy', 0)) for m in models]
+    f1_gap = [abs(results[m].get('test_seen', {}).get('f1_score', 0) - results[m].get('test_unseen', {}).get('f1_score', 0)) for m in models]
     
     axes[1, 0].bar(x - width/2, acc_gap, width, label='Accuracy Gap', alpha=0.8)
     axes[1, 0].bar(x + width/2, f1_gap, width, label='F1-Score Gap', alpha=0.8)
@@ -105,10 +114,10 @@ def plot_comparison(results, save_dir='results'):
     # Precision-Recall comparison
     fig, ax = plt.subplots(figsize=(10, 6))
     
-    precision_seen = [results[m].get('seen_precision', 0) for m in models]
-    recall_seen = [results[m].get('seen_recall', 0) for m in models]
-    precision_unseen = [results[m].get('unseen_precision', 0) for m in models]
-    recall_unseen = [results[m].get('unseen_recall', 0) for m in models]
+    precision_seen = [results[m].get('test_seen', {}).get('precision', 0) for m in models]
+    recall_seen = [results[m].get('test_seen', {}).get('recall', 0) for m in models]
+    precision_unseen = [results[m].get('test_unseen', {}).get('precision', 0) for m in models]
+    recall_unseen = [results[m].get('test_unseen', {}).get('recall', 0) for m in models]
     
     ax.scatter(recall_seen, precision_seen, s=200, alpha=0.6, label='Test Seen', marker='o')
     ax.scatter(recall_unseen, precision_unseen, s=200, alpha=0.6, label='Test Unseen', marker='^')
@@ -142,7 +151,7 @@ def generate_summary_report(results, save_dir='results'):
     
     for model_name in results.keys():
         r = results[model_name]
-        report += f"| {model_name} | {r.get('seen_accuracy', 0):.4f} | {r.get('seen_precision', 0):.4f} | {r.get('seen_recall', 0):.4f} | {r.get('seen_f1', 0):.4f} |\n"
+        report += f"| {model_name} | {r.get('test_seen', {}).get('accuracy', 0):.4f} | {r.get('test_seen', {}).get('precision', 0):.4f} | {r.get('test_seen', {}).get('recall', 0):.4f} | {r.get('test_seen', {}).get('f1_score', 0):.4f} |\n"
     
     report += "\n### Test Set (Unseen Attacks)\n"
     report += "| Model | Accuracy | Precision | Recall | F1-Score |\n"
@@ -150,7 +159,7 @@ def generate_summary_report(results, save_dir='results'):
     
     for model_name in results.keys():
         r = results[model_name]
-        report += f"| {model_name} | {r.get('unseen_accuracy', 0):.4f} | {r.get('unseen_precision', 0):.4f} | {r.get('unseen_recall', 0):.4f} | {r.get('unseen_f1', 0):.4f} |\n"
+        report += f"| {model_name} | {r.get('test_unseen', {}).get('accuracy', 0):.4f} | {r.get('test_unseen', {}).get('precision', 0):.4f} | {r.get('test_unseen', {}).get('recall', 0):.4f} | {r.get('test_unseen', {}).get('f1_score', 0):.4f} |\n"
     
     report += "\n### Generalization Analysis\n"
     report += "| Model | Accuracy Gap | F1-Score Gap | Training Time (s) |\n"
@@ -158,8 +167,8 @@ def generate_summary_report(results, save_dir='results'):
     
     for model_name in results.keys():
         r = results[model_name]
-        acc_gap = abs(r.get('seen_accuracy', 0) - r.get('unseen_accuracy', 0))
-        f1_gap = abs(r.get('seen_f1', 0) - r.get('unseen_f1', 0))
+        acc_gap = abs(r.get('test_seen', {}).get('accuracy', 0) - r.get('test_unseen', {}).get('accuracy', 0))
+        f1_gap = abs(r.get('test_seen', {}).get('f1_score', 0) - r.get('test_unseen', {}).get('f1_score', 0))
         report += f"| {model_name} | {acc_gap:.4f} | {f1_gap:.4f} | {r.get('training_time', 0):.2f} |\n"
     
     with open(f'{save_dir}/comparison_report.md', 'w') as f:
@@ -168,8 +177,25 @@ def generate_summary_report(results, save_dir='results'):
     print(f"✓ Summary report saved to {save_dir}/comparison_report.md")
 
 if __name__ == '__main__':
-    print("Model Comparison Script")
-    print("Run training scripts first:")
-    print("  python train_xgboost.py")
-    print("  python train_ocsvm.py")
-    print("  python train_lstm.py")
+    print("Starting model comparison...")
+    
+    results = load_results()
+    
+    if not results or len(results) < 3:
+        print("Error: Not all model results found. Please run all training scripts first:")
+        print("  python train_xgboost.py")
+        print("  python train_ocsvm.py")
+        print("  python train_lstm.py")
+    else:
+        # Create and display the comparison table
+        comparison_table = create_comparison_table(results)
+        print("\nModel Comparison Table:")
+        print(comparison_table.to_string())
+        
+        # Generate and save comparison plots
+        plot_comparison(results)
+        
+        # Generate and save a summary report
+        generate_summary_report(results)
+        
+        print("\nComparison complete.")
