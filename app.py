@@ -105,22 +105,9 @@ def detect_attacks():
         
         column_mapping = {
             'ACK Flag Cnt': 'ACK Flag Count',
-            'Active Max': 'Active Max',
-            'Active Min': 'Active Min',
-            'Active Mean': 'Active Mean',
-            'Active Std': 'Active Std',
-            'Avg Bwd Segment Size': 'Avg Bwd Segment Size',
-            'Avg Fwd Segment Size': 'Avg Fwd Segment Size',
-            'Bwd Avg Segment Size': 'Avg Bwd Segment Size',
             'Bwd Blk Rate Avg': 'Bwd Avg Bulk Rate',
             'Bwd Byts/b Avg': 'Bwd Avg Bytes/Bulk',
             'Bwd Header Len': 'Bwd Header Length',
-            'Bwd IAT Max': 'Bwd IAT Max',
-            'Bwd IAT Mean': 'Bwd IAT Mean',
-            'Bwd IAT Min': 'Bwd IAT Min',
-            'Bwd IAT Std': 'Bwd IAT Std',
-            'Bwd IAT Tot': 'Bwd IAT Total',
-            'Bwd PSH Flags': 'Bwd PSH Flags',
             'Bwd Pkt Len Max': 'Bwd Packet Length Max',
             'Bwd Pkt Len Mean': 'Bwd Packet Length Mean',
             'Bwd Pkt Len Min': 'Bwd Packet Length Min',
@@ -128,29 +115,15 @@ def detect_attacks():
             'Bwd Pkts/b Avg': 'Bwd Avg Packets/Bulk',
             'Bwd Pkts/s': 'Bwd Packets/s',
             'Bwd Seg Size Avg': 'Avg Bwd Segment Size',
-            'Bwd URG Flags': 'Bwd URG Flags',
-            'CWE Flag Count': 'CWE Flag Count',
-            'Down/Up Ratio': 'Down/Up Ratio',
             'ECE Flag Cnt': 'ECE Flag Count',
             'FIN Flag Cnt': 'FIN Flag Count',
             'Flow Byts/s': 'Flow Bytes/s',
-            'Flow IAT Max': 'Flow IAT Max',
-            'Flow IAT Mean': 'Flow IAT Mean',
-            'Flow IAT Min': 'Flow IAT Min',
-            'Flow IAT Std': 'Flow IAT Std',
             'Flow Pkts/s': 'Flow Packets/s',
             'Fwd Act Data Pkts': 'act_data_pkt_fwd',
-            'Fwd Avg Segment Size': 'Avg Fwd Segment Size',
             'Fwd Blk Rate Avg': 'Fwd Avg Bulk Rate',
             'Fwd Byts/b Avg': 'Fwd Avg Bytes/Bulk',
             'Fwd Header Len': 'Fwd Header Length',
-            'Fwd Header Length.1': 'Fwd Header Length.1',
-            'Fwd IAT Max': 'Fwd IAT Max',
-            'Fwd IAT Mean': 'Fwd IAT Mean',
-            'Fwd IAT Min': 'Fwd IAT Min',
-            'Fwd IAT Std': 'Fwd IAT Std',
             'Fwd IAT Tot': 'Fwd IAT Total',
-            'Fwd PSH Flags': 'Fwd PSH Flags',
             'Fwd Pkt Len Max': 'Fwd Packet Length Max',
             'Fwd Pkt Len Mean': 'Fwd Packet Length Mean',
             'Fwd Pkt Len Min': 'Fwd Packet Length Min',
@@ -159,37 +132,27 @@ def detect_attacks():
             'Fwd Pkts/s': 'Fwd Packets/s',
             'Fwd Seg Size Avg': 'Avg Fwd Segment Size',
             'Fwd Seg Size Min': 'min_seg_size_forward',
-            'Fwd URG Flags': 'Fwd URG Flags',
-            'Idle Max': 'Idle Max',
-            'Idle Mean': 'Idle Mean',
-            'Idle Min': 'Idle Min',
-            'Idle Std': 'Idle Std',
             'Init Fwd Win Byts': 'Init_Win_bytes_forward',
             'Init Bwd Win Byts': 'Init_Win_bytes_backward',
-            'PSH Flag Cnt': 'PSH Flag Count',
             'Pkt Len Max': 'Max Packet Length',
             'Pkt Len Mean': 'Packet Length Mean',
             'Pkt Len Min': 'Min Packet Length',
             'Pkt Len Std': 'Packet Length Std',
             'Pkt Len Var': 'Packet Length Variance',
             'Pkt Size Avg': 'Average Packet Size',
+            'PSH Flag Cnt': 'PSH Flag Count',
             'RST Flag Cnt': 'RST Flag Count',
             'SYN Flag Cnt': 'SYN Flag Count',
-            'Src IP': 'Source IP',
-            'Src Port': 'Source Port',
-            'Dst IP': 'Destination IP',
-            'Dst Port': 'Destination Port',
+            'Bwd IAT Tot': 'Bwd IAT Total',
             'Subflow Bwd Byts': 'Subflow Bwd Bytes',
             'Subflow Bwd Pkts': 'Subflow Bwd Packets',
             'Subflow Fwd Byts': 'Subflow Fwd Bytes',
             'Subflow Fwd Pkts': 'Subflow Fwd Packets',
-            'Tot Bwd Pkts': 'Total Backward Packets',
             'Tot Fwd Pkts': 'Total Fwd Packets',
-            'TotLen Bwd Pkts': 'Total Length of Bwd Packets',
+            'Tot Bwd Pkts': 'Total Backward Packets',
             'TotLen Fwd Pkts': 'Total Length of Fwd Packets',
-            'URG Flag Cnt': 'URG Flag Count',
-            'act_data_pkt_fwd': 'act_data_pkt_fwd',
-            'min_seg_size_forward': 'min_seg_size_forward'
+            'TotLen Bwd Pkts': 'Total Length of Bwd Packets',
+            'URG Flag Cnt': 'URG Flag Count'
         }
         
         df = df.rename(columns=column_mapping)
@@ -218,11 +181,18 @@ def detect_attacks():
         
         X_scaled = scaler.transform(X)
         
+        # Load optimal threshold (default 0.1 if not exists)
+        try:
+            with open('models/optimal_threshold.txt', 'r') as f:
+                threshold = float(f.read().strip())
+        except:
+            threshold = 0.1
+        
         if model_name == 'xgboost':
             model = joblib.load('models/xgboost_model.pkl')
-            predictions = model.predict(X_scaled)
-            probabilities_raw = model.predict_proba(X_scaled)
-            probabilities = np.array([probabilities_raw[i][predictions[i]] for i in range(len(predictions))])
+            probabilities_raw = model.predict_proba(X_scaled)[:, 1]
+            predictions = (probabilities_raw >= threshold).astype(int)
+            probabilities = np.where(predictions == 1, probabilities_raw, 1 - probabilities_raw)
         elif model_name == 'ocsvm':
             model = joblib.load('models/ocsvm_model.pkl')
             raw_predictions = model.predict(X_scaled)
@@ -237,7 +207,7 @@ def detect_attacks():
             X_lstm = X_scaled[:trimmed_samples].reshape(num_sequences, timesteps, X_scaled.shape[1])
             
             probabilities_raw = model.predict(X_lstm, verbose=0).flatten()
-            predictions = (probabilities_raw > 0.5).astype(int)
+            predictions = (probabilities_raw >= threshold).astype(int)
             probabilities = np.where(predictions == 1, probabilities_raw, 1 - probabilities_raw)
             
             if len(predictions) < len(X_scaled):
@@ -251,8 +221,8 @@ def detect_attacks():
         
         attack_types = {}
         if true_labels[0] is not None:
-            for label in true_labels:
-                if label and label != 'BENIGN':
+            for i, (label, pred) in enumerate(zip(true_labels, predictions)):
+                if pred == 1 and label and label.upper() != 'BENIGN':
                     attack_types[label] = attack_types.get(label, 0) + 1
         
         detections = []
