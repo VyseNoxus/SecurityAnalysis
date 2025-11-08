@@ -1,0 +1,23 @@
+# --- Core Data Handling & Scientific Computing ---
+# Using numpy<2.0 as it's required by TensorFlow 2.16
+numpy<2.0
+pandas==2.2.2
+scikit-learn==1.4.2
+
+# --- Data Visualization ---
+matplotlib==3.8.4
+seaborn==0.13.2
+
+# --- Machine Learning Frameworks ---
+# Pinning to TensorFlow 2.16 as it's a highly stable and compatible version
+# This avoids conflicts with newer, sometimes breaking, dependency changes.
+tensorflow==2.16.1
+# Keras and TensorBoard versions must align with the TensorFlow version
+tensorboard==2.16.2
+# ml-dtypes version required by this version of TensorFlow
+ml-dtypes==0.3.2
+
+# --- Utilities & Web Framework ---
+joblib==1.4.2
+xgboost==2.0.3
+flask==3.0.3
