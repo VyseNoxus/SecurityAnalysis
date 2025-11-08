@@ -1,0 +1,56 @@
+{
+  "model_name": "XGBoost",
+  "training_time": 17.716702699661255,
+  "threshold": 0.9142216444015503,
+  "train": {
+    "accuracy": 0.9999960490861536,
+    "precision": 0.9998179169701383,
+    "recall": 1.0,
+    "f1_score": 0.9999089501957571,
+    "confusion_matrix": [
+      [
+        247614,
+        1
+      ],
+      [
+        0,
+        5491
+      ]
+    ],
+    "prediction_time": 0.405764102935791
+  },
+  "test_seen": {
+    "accuracy": 0.9999520691163343,
+    "precision": 0.9989047097480832,
+    "recall": 0.9967213114754099,
+    "f1_score": 0.9978118161925602,
+    "confusion_matrix": [
+      [
+        165075,
+        2
+      ],
+      [
+        6,
+        1824
+      ]
+    ],
+    "prediction_time": 0.2597055435180664
+  },
+  "test_unseen": {
+    "accuracy": 0.9972692517749864,
+    "precision": 1.0,
+    "recall": 0.9972692517749864,
+    "f1_score": 0.998632759092152,
+    "confusion_matrix": [
+      [
+        0,
+        0
+      ],
+      [
+        5,
+        1826
+      ]
+    ],
+    "prediction_time": 0.004576683044433594
+  }
+}

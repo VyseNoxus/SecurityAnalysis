@@ -1,0 +1,55 @@
+{
+  "model_name": "One-Class SVM",
+  "training_time": 940.6500871181488,
+  "train": {
+    "accuracy": 0.8932384060433178,
+    "precision": 0.0003249013692271989,
+    "recall": 0.0012748133309051174,
+    "f1_score": 0.0005178280810770825,
+    "confusion_matrix": [
+      [
+        226077,
+        21538
+      ],
+      [
+        5484,
+        7
+      ]
+    ],
+    "prediction_time": 494.03897356987
+  },
+  "test_seen": {
+    "accuracy": 0.9026823320771448,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1_score": 0.0,
+    "confusion_matrix": [
+      [
+        150664,
+        14413
+      ],
+      [
+        1830,
+        0
+      ]
+    ],
+    "prediction_time": 255.9146466255188
+  },
+  "test_unseen": {
+    "accuracy": 0.0010922992900054614,
+    "precision": 1.0,
+    "recall": 0.0010922992900054614,
+    "f1_score": 0.002182214948172395,
+    "confusion_matrix": [
+      [
+        0,
+        0
+      ],
+      [
+        1829,
+        2
+      ]
+    ],
+    "prediction_time": 2.7651140689849854
+  }
+}

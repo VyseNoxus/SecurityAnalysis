@@ -1,0 +1,56 @@
+{
+  "model_name": "LSTM",
+  "training_time": 21.256673336029053,
+  "threshold": 0.9306213855743408,
+  "train": {
+    "accuracy": 0.9892532595811933,
+    "precision": 0.9764,
+    "recall": 0.9694201747418586,
+    "f1_score": 0.972897568752491,
+    "confusion_matrix": [
+      [
+        20156,
+        118
+      ],
+      [
+        154,
+        4882
+      ]
+    ],
+    "prediction_time": 1.0595252513885498
+  },
+  "test_seen": {
+    "accuracy": 0.9930497303774716,
+    "precision": 0.6120401337792643,
+    "recall": 1.0,
+    "f1_score": 0.7593360995850622,
+    "confusion_matrix": [
+      [
+        16391,
+        116
+      ],
+      [
+        0,
+        183
+      ]
+    ],
+    "prediction_time": 0.6796200275421143
+  },
+  "test_unseen": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0,
+    "confusion_matrix": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        183
+      ]
+    ],
+    "prediction_time": 0.046337127685546875
+  }
+}
