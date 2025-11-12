@@ -28,6 +28,8 @@ pip install -r requirements.txt
 2. Prepare the dataset:
 ```bash
 python data_preparation.py
+python feature_engineering.py
+python tune_threshold.py
 ```
 
 ## Training Models
