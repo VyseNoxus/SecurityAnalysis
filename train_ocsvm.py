@@ -23,6 +23,12 @@ def _tune_one_class_svm(X_train, y_train):
     # The model is still only trained on benign data from the training split
     X_tr_benign = X_tr[y_tr == 0]
     
+    # Use a smaller sample for tuning to speed up grid search
+    sample_size = min(20000, len(X_tr_benign))
+    print(f"  Using {sample_size:,} samples for hyperparameter tuning...")
+    indices = np.random.RandomState(42).choice(len(X_tr_benign), sample_size, replace=False)
+    X_tr_benign_sample = X_tr_benign[indices]
+    
     search_space = {
         'nu': [0.01, 0.05, 0.1],      # Contamination rate
         'gamma': ['scale', 'auto']  # Kernel coefficient
@@ -32,8 +38,8 @@ def _tune_one_class_svm(X_train, y_train):
     for nu in search_space['nu']:
         for gamma in search_space['gamma']:
             print(f"  Trying nu={nu}, gamma={gamma}...")
-            model = OneClassSVM(kernel='rbf', gamma=gamma, nu=nu, max_iter=10000, cache_size=800)
-            model.fit(X_tr_benign)
+            model = OneClassSVM(kernel='rbf', gamma=gamma, nu=nu, max_iter=5000, cache_size=1500, tol=1e-3)
+            model.fit(X_tr_benign_sample)
             
             # Evaluate on the validation set
             y_pred_raw = model.predict(X_val)
@@ -51,7 +57,7 @@ def train_one_class_svm(X_train, y_train):
     
     # Train only on BENIGN traffic (anomaly detection approach)
     X_benign = X_train[y_train == 0]
-    print(f"\nTraining on BENIGN traffic only: {len(X_benign):,} samples")
+    print(f"\nTraining on all BENIGN traffic: {len(X_benign):,} samples")
     
     # Hyperparameter tuning
     tuned_params = _tune_one_class_svm(X_train, y_train)
@@ -59,8 +65,10 @@ def train_one_class_svm(X_train, y_train):
         'kernel': 'rbf',
         'gamma': tuned_params.get('gamma', 'auto'),
         'nu': tuned_params.get('nu', 0.05),
-        'max_iter': 20000,   # Increase for convergence on larger datasets
-        'cache_size': 1000, # More memory for faster training
+        'max_iter': 10000,   # Sufficient for convergence
+        'cache_size': 2000,  # More memory for faster training (MB)
+        'tol': 1e-3,         # Relaxed tolerance for faster convergence
+        'shrinking': True,   # Enable shrinking heuristic (default, but explicit)
     }
     
     print("\nFinal Model parameters:")

@@ -14,16 +14,19 @@ import os
 from feature_engineering import prepare_data_for_models
 
 def _find_best_threshold(y_true, y_scores):
-    """Find the optimal probability threshold to maximize F1-score."""
+    """Find the optimal probability threshold balancing F1 and recall for better generalization."""
     precision, recall, thresholds = precision_recall_curve(y_true, y_scores)
-    # Add a small epsilon to avoid division by zero
-    f1 = (2 * precision[:-1] * recall[:-1]) / (precision[:-1] + recall[:-1] + 1e-8)
     
-    if len(f1) == 0:
-        return 0.5 # Default if no thresholds are found
-
-    idx = int(np.argmax(f1))
-    return float(thresholds[idx])
+    # Weight recall higher (F2-score) for better generalization to unseen attacks
+    beta = 2  # Emphasize recall over precision
+    f_beta = ((1 + beta**2) * precision[:-1] * recall[:-1]) / ((beta**2 * precision[:-1]) + recall[:-1] + 1e-8)
+    
+    if len(f_beta) == 0:
+        return 0.3 # Lower default for better recall
+    
+    idx = int(np.argmax(f_beta))
+    # Cap threshold at 0.7 to avoid over-specialization
+    return float(min(thresholds[idx], 0.7))
 
 def train_xgboost(X_train, y_train):
     print("\n" + "=" * 60)
@@ -37,14 +40,18 @@ def train_xgboost(X_train, y_train):
     
     params = {
         'objective': 'binary:logistic',
-        'max_depth': 6,
-        'learning_rate': 0.05,
-        'n_estimators': 1000, # Increased for better performance with early stopping
-        'subsample': 0.8,
-        'colsample_bytree': 0.8,
+        'max_depth': 4,              # Reduced from 6 to prevent overfitting
+        'learning_rate': 0.03,        # Lower learning rate for better generalization
+        'n_estimators': 500,          # Fewer trees to reduce complexity
+        'subsample': 0.7,             # More aggressive subsampling
+        'colsample_bytree': 0.7,      # Sample fewer features per tree
+        'min_child_weight': 5,        # Prevent learning from very small groups
+        'reg_alpha': 0.5,             # L1 regularization
+        'reg_lambda': 1.0,            # L2 regularization
+        'gamma': 0.1,                 # Minimum loss reduction for split
         'random_state': 42,
         'eval_metric': 'logloss',
-        'tree_method': 'hist', # Faster training
+        'tree_method': 'hist',
         'scale_pos_weight': scale_pos_weight
     }
     
@@ -60,11 +67,10 @@ def train_xgboost(X_train, y_train):
         X_train, y_train, test_size=0.2, random_state=42, stratify=y_train
     )
     
-    model = xgb.XGBClassifier(**params)
+    model = xgb.XGBClassifier(**params, early_stopping_rounds=50)
     model.fit(
         X_tr, y_tr,
         eval_set=[(X_val, y_val)],
-        early_stopping_rounds=50, # Stop if validation loss doesn't improve for 50 rounds
         verbose=False
     )
     

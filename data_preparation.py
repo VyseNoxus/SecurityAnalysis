@@ -8,7 +8,11 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 import os
 
-DATASET_PATH = "Tuesday-WorkingHours.pcap_ISCX.csv"
+# Can use single dataset or combine multiple
+DATASET_PATHS = [
+    "Tuesday-WorkingHours.pcap_ISCX.csv",  # CICIDS-2017
+    # "02-14-2018.csv"                        # CICIDS-2018 (used for testing only)
+]
 OUTPUT_DIR = "data/processed"
 RANDOM_STATE = 42
 
@@ -18,12 +22,29 @@ print("=" * 60)
 print("CICIDS Dataset Preparation")
 print("=" * 60)
 
-print(f"\n1. Loading dataset from {DATASET_PATH}...")
-df = pd.read_csv(DATASET_PATH)
-print(f"   Shape: {df.shape[0]:,} rows × {df.shape[1]} columns")
+print(f"\n1. Loading datasets...")
+dfs = []
+for dataset_path in DATASET_PATHS:
+    if os.path.exists(dataset_path):
+        print(f"   Loading {dataset_path}...")
+        temp_df = pd.read_csv(dataset_path)
+        temp_df.columns = temp_df.columns.str.strip()
+        print(f"     Shape: {temp_df.shape[0]:,} rows × {temp_df.shape[1]} columns")
+        dfs.append(temp_df)
+    else:
+        print(f"   ⚠ Skipping {dataset_path} (not found)")
 
-print("\n2. Cleaning column names...")
-df.columns = df.columns.str.strip()
+if not dfs:
+    raise FileNotFoundError("No dataset files found!")
+
+print(f"\n   Combining {len(dfs)} dataset(s)...")
+df = pd.concat(dfs, ignore_index=True)
+print(f"\n   Combined shape: {df.shape[0]:,} rows × {df.shape[1]} columns")
+
+print("\n2. Normalizing label names...")
+# Standardize label capitalization (2017 uses BENIGN, 2018 uses Benign)
+df['Label'] = df['Label'].str.strip()
+df['Label'] = df['Label'].replace('Benign', 'BENIGN')
 
 print("\n3. Label Distribution:")
 print(df['Label'].value_counts())
