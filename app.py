@@ -181,14 +181,28 @@ def detect_attacks():
         
         X_scaled = scaler.transform(X)
         
-        # Load optimal threshold (default 0.1 if not exists)
-        try:
-            with open('models/optimal_threshold.txt', 'r') as f:
-                threshold = float(f.read().strip())
-        except:
-            threshold = 0.1
-        
+        # Determine model-specific threshold with graceful fallback order:
+        # 1. Model-specific threshold file (xgboost_threshold.pkl / lstm_threshold.pkl)
+        # 2. Legacy optimal_threshold.txt
+        # 3. Default 0.1
+        def load_threshold(name):
+            specific_path = f'models/{name}_threshold.pkl'
+            legacy_path = 'models/optimal_threshold.txt'
+            if os.path.exists(specific_path):
+                try:
+                    return float(joblib.load(specific_path))
+                except Exception:
+                    pass
+            if os.path.exists(legacy_path):
+                try:
+                    with open(legacy_path, 'r') as f:
+                        return float(f.read().strip())
+                except Exception:
+                    pass
+            return 0.1
+
         if model_name == 'xgboost':
+            threshold = load_threshold('xgboost')
             model = joblib.load('models/xgboost_model.pkl')
             probabilities_raw = model.predict_proba(X_scaled)[:, 1]
             predictions = (probabilities_raw >= threshold).astype(int)
@@ -199,6 +213,7 @@ def detect_attacks():
             predictions = np.where(raw_predictions == 1, 0, 1)
             probabilities = np.where(predictions == 1, 0.9, 0.1)
         elif model_name == 'lstm':
+            threshold = load_threshold('lstm')
             model = keras.models.load_model('models/lstm_model.h5')
             timesteps = joblib.load('models/lstm_timesteps.pkl')
             
@@ -206,14 +221,19 @@ def detect_attacks():
             trimmed_samples = num_sequences * timesteps
             X_lstm = X_scaled[:trimmed_samples].reshape(num_sequences, timesteps, X_scaled.shape[1])
             
-            probabilities_raw = model.predict(X_lstm, verbose=0).flatten()
-            predictions = (probabilities_raw >= threshold).astype(int)
-            probabilities = np.where(predictions == 1, probabilities_raw, 1 - probabilities_raw)
+            # Sequence-level probabilities/predictions
+            sequence_probs = model.predict(X_lstm, verbose=0).flatten()
+            sequence_preds = (sequence_probs >= threshold).astype(int)
             
+            # Expand each sequence prediction/probability across its timesteps to map back to per-row granularity
+            predictions = np.repeat(sequence_preds, timesteps)
+            probabilities = np.repeat(sequence_probs, timesteps)
+            
+            # Pad any leftover (incomplete final sequence) rows with benign prediction and zero confidence
             if len(predictions) < len(X_scaled):
-                padding = len(X_scaled) - len(predictions)
-                predictions = np.pad(predictions, (0, padding), mode='constant')
-                probabilities = np.pad(probabilities, (0, padding), mode='constant')
+                remainder = len(X_scaled) - len(predictions)
+                predictions = np.concatenate([predictions, np.zeros(remainder, dtype=int)])
+                probabilities = np.concatenate([probabilities, np.zeros(remainder, dtype=float)])
         
         total_samples = len(predictions)
         attacks_detected = int(np.sum(predictions))

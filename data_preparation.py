@@ -11,7 +11,6 @@ import os
 # Can use single dataset or combine multiple
 DATASET_PATHS = [
     "Tuesday-WorkingHours.pcap_ISCX.csv",  # CICIDS-2017
-    # "02-14-2018.csv"                        # CICIDS-2018 (used for testing only)
 ]
 OUTPUT_DIR = "data/processed"
 RANDOM_STATE = 42

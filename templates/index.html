@@ -527,7 +527,6 @@
         let modelResults = {};
         let charts = {};
 
-        // Fetch results on page load
         async function loadResults() {
             try {
                 const response = await fetch('/api/results');
@@ -535,7 +534,6 @@
                 
                 document.getElementById('loadingMessage').style.display = 'none';
                 
-                // Check if any results are available
                 const hasResults = Object.values(modelResults).some(r => r !== null);
                 if (!hasResults) {
                     showError('No model results found. Please train the models first.');
@@ -577,7 +575,6 @@
             
             const metric = document.getElementById('metricSelect').value;
             
-            // Performance Comparison Chart
             if (charts.comparison) charts.comparison.destroy();
             const ctx1 = document.getElementById('comparisonChart').getContext('2d');
             charts.comparison = new Chart(ctx1, {
@@ -625,14 +622,13 @@
                 }
             });
 
-            // Generalization Chart
             if (charts.generalization) charts.generalization.destroy();
             const ctx2 = document.getElementById('generalizationChart').getContext('2d');
             
             const generalizationGap = comparison.models.map((_, idx) => {
                 const gap = Math.abs(comparison.metrics[`test_seen_${metric}`][idx] - 
                            comparison.metrics[`test_unseen_${metric}`][idx]);
-                return Math.round(gap * 100) / 100; // Round to 2 decimal places
+                return Math.round(gap * 100) / 100;
             });
             
             charts.generalization = new Chart(ctx2, {
@@ -667,7 +663,6 @@
                 }
             });
 
-            // Update comparison table
             updateComparisonTable(comparison);
         }
 
@@ -701,7 +696,6 @@
 
             document.getElementById('modelTitle').textContent = `${modelName.toUpperCase()} Performance`;
             
-            // Update metrics
             document.getElementById('trainAccuracy').textContent = 
                 (modelData.train.accuracy * 100).toFixed(2) + '%';
             document.getElementById('testSeenAccuracy').textContent = 
@@ -711,14 +705,12 @@
             document.getElementById('unseenF1').textContent = 
                 (modelData.test_unseen.f1_score * 100).toFixed(2) + '%';
 
-            // Update confusion matrix
             const cm = modelData.test_unseen.confusion_matrix;
             document.getElementById('cmTN').textContent = cm[0][0];
             document.getElementById('cmFP').textContent = cm[0][1];
             document.getElementById('cmFN').textContent = cm[1][0];
             document.getElementById('cmTP').textContent = cm[1][1];
 
-            // Performance chart
             if (charts.singleModel) charts.singleModel.destroy();
             const ctx = document.getElementById('singleModelChart').getContext('2d');
             charts.singleModel = new Chart(ctx, {
@@ -776,7 +768,6 @@
                 }
             });
 
-            // Precision-Recall chart
             if (charts.precisionRecall) charts.precisionRecall.destroy();
             const ctx2 = document.getElementById('precisionRecallChart').getContext('2d');
             charts.precisionRecall = new Chart(ctx2, {
@@ -829,7 +820,6 @@
             }
         }
 
-        // Load results when page loads
         loadResults();
     </script>
     </div>

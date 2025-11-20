@@ -34,7 +34,7 @@ def _label_sequences(y, timesteps=10, mode='any'):
     
     if mode == 'any':
         y_sequences = (np.sum(y_trimmed, axis=1) > 0).astype(int)
-    else: # Default to 'any'
+    else:
         y_sequences = (np.sum(y_trimmed, axis=1) > 0).astype(int)
         
     return y_sequences
@@ -54,7 +54,7 @@ def build_lstm_model(input_shape):
         layers.LSTM(32),
         layers.Dropout(0.2),
         layers.Dense(16, activation='relu'),
-        layers.Dense(1, activation='sigmoid') # Binary classification output
+        layers.Dense(1, activation='sigmoid')
     ])
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy', tf.keras.metrics.Precision(name='precision'), tf.keras.metrics.Recall(name='recall')])
     return model

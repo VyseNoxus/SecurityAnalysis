@@ -252,9 +252,9 @@
             <div class="control-group">
                 <label for="detectionModelSelect">Select Detection Model:</label>
                 <select id="detectionModelSelect">
-                    <option value="xgboost">XGBoost (Recommended - 99.71% Accuracy)</option>
-                    <option value="lstm">LSTM (80.80% Accuracy)</option>
-                    <option value="ocsvm">One-Class SVM (0.80% Accuracy)</option>
+                    <option value="xgboost">XGBoost</option>
+                    <option value="lstm">LSTM</option>
+                    <option value="ocsvm">One-Class SVM</option>
                 </select>
             </div>
             
@@ -351,6 +351,42 @@
             confidence: null
         };
 
+        // Populate model option labels with latest unseen test accuracy
+        async function populateModelAccuracies() {
+            try {
+                const res = await fetch('/api/results');
+                const data = await res.json();
+                const select = document.getElementById('detectionModelSelect');
+                [...select.options].forEach(opt => {
+                    const key = opt.value;
+                    const modelData = data[key];
+                    if (modelData && modelData.test_unseen && typeof modelData.test_unseen.accuracy === 'number') {
+                        const acc = (modelData.test_unseen.accuracy * 100).toFixed(2);
+                    }
+                });
+                
+                let bestModel = 'xgboost';
+                if (!data[bestModel]) {
+                    const accuracies = Object.entries(data).filter(([_, v]) => v && v.test_unseen).map(([m, v]) => ({ m, acc: v.test_unseen.accuracy }));
+                    if (accuracies.length) {
+                        bestModel = accuracies.reduce((a,b)=> b.acc > a.acc ? b : a).m;
+                    }
+                }
+                [...select.options].forEach(opt => {
+                    const key = opt.value;
+                    const modelData = data[key];
+                    if (modelData && modelData.test_unseen && typeof modelData.test_unseen.accuracy === 'number') {
+                        const recTag = (key === bestModel) ? ' (Recommended)' : '';
+                        opt.textContent = `${opt.textContent.split('(')[0].trim()}${recTag}`;
+                    }
+                });
+            } catch (e) {
+                console.warn('Failed to populate model accuracies:', e);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', populateModelAccuracies);
+
         // File upload handler
         function handleFileUpload(event) {
             const file = event.target.files[0];
@@ -363,7 +399,6 @@
             formData.append('file', file);
             formData.append('model', document.getElementById('detectionModelSelect').value);
             
-            // Simulate progress
             let progress = 0;
             const progressInterval = setInterval(() => {
                 progress += 10;
@@ -390,13 +425,11 @@
                     return;
                 }
                 
-                // Update stats
                 document.getElementById('totalSamples').textContent = result.total_samples.toLocaleString();
                 document.getElementById('attacksDetected').textContent = result.attacks_detected.toLocaleString();
                 document.getElementById('benignTraffic').textContent = result.benign_traffic.toLocaleString();
                 document.getElementById('avgConfidence').textContent = result.avg_confidence + '%';
                 
-                // Display attack types if available
                 if (result.attack_types && Object.keys(result.attack_types).length > 0) {
                     const attackTypesCard = document.getElementById('attackTypesCard');
                     const attackTypesList = document.getElementById('attackTypesList');
@@ -417,7 +450,6 @@
                     attackTypesList.innerHTML = html;
                 }
                 
-                // Populate table (first 100 rows)
                 const tbody = document.getElementById('detectionTableBody');
                 tbody.innerHTML = '';
                 result.predictions.slice(0, 100).forEach((pred, idx) => {
@@ -425,7 +457,6 @@
                     const isCorrect = (pred.prediction === 'ATTACK' && pred.actual_label !== 'BENIGN' && pred.actual_label !== 'Unknown') ||
                                      (pred.prediction === 'BENIGN' && (pred.actual_label === 'BENIGN' || pred.actual_label === 'Unknown'));
                     
-                    // Color code confidence
                     let confColor = '#16a34a'; // green for high
                     if (pred.confidence < 70) confColor = '#dc2626'; // red for low
                     else if (pred.confidence < 90) confColor = '#f59e0b'; // yellow for medium
@@ -441,10 +472,8 @@
                     `;
                 });
                 
-                // Show results
                 document.getElementById('detectionResults').style.display = 'block';
                 
-                // Create visualizations
                 createPredictionPieChart(result.attacks_detected, result.benign_traffic);
                 createConfidenceChart(result.confidence_distribution);
                 createDetectionTimeline(result.timeline, result.timeline_labels);
@@ -544,21 +573,17 @@
             
             const ctx = document.getElementById('detectionTimelineChart').getContext('2d');
             
-            // Create very sparse labels - only show 8 evenly spaced labels
             const totalPoints = timeline.length;
             const numLabels = Math.min(8, totalPoints);
             const step = Math.floor(totalPoints / (numLabels - 1));
             
             const cleanLabels = timeline.map((_, idx) => {
-                // Only show labels at specific intervals
                 if (idx === 0 || idx === totalPoints - 1) {
-                    // First and last always show
                     return `${idx}k`;
                 } else if (idx % step === 0) {
-                    // Show every step
                     return `${idx}k`;
                 } else {
-                    return ''; // Empty string - no label
+                    return '';
                 }
             });
             
@@ -663,7 +688,6 @@
                                 },
                                 padding: 8,
                                 callback: function(value, index) {
-                                    // Only show non-empty labels
                                     return this.getLabelForValue(index) || undefined;
                                 }
                             }

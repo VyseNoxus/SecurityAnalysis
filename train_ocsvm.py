@@ -30,8 +30,8 @@ def _tune_one_class_svm(X_train, y_train):
     X_tr_benign_sample = X_tr_benign[indices]
     
     search_space = {
-        'nu': [0.01, 0.05, 0.1],      # Contamination rate
-        'gamma': ['scale', 'auto']  # Kernel coefficient
+        'nu': [0.01, 0.05, 0.1],
+        'gamma': ['scale', 'auto']
     }
     best = {'params': None, 'f1': -1}
 
@@ -65,10 +65,10 @@ def train_one_class_svm(X_train, y_train):
         'kernel': 'rbf',
         'gamma': tuned_params.get('gamma', 'auto'),
         'nu': tuned_params.get('nu', 0.05),
-        'max_iter': 10000,   # Sufficient for convergence
-        'cache_size': 2000,  # More memory for faster training (MB)
-        'tol': 1e-3,         # Relaxed tolerance for faster convergence
-        'shrinking': True,   # Enable shrinking heuristic (default, but explicit)
+        'max_iter': 10000,
+        'cache_size': 2000,
+        'tol': 1e-3,
+        'shrinking': True,
     }
     
     print("\nFinal Model parameters:")

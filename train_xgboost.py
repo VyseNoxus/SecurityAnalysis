@@ -40,15 +40,15 @@ def train_xgboost(X_train, y_train):
     
     params = {
         'objective': 'binary:logistic',
-        'max_depth': 4,              # Reduced from 6 to prevent overfitting
-        'learning_rate': 0.03,        # Lower learning rate for better generalization
-        'n_estimators': 500,          # Fewer trees to reduce complexity
-        'subsample': 0.7,             # More aggressive subsampling
-        'colsample_bytree': 0.7,      # Sample fewer features per tree
-        'min_child_weight': 5,        # Prevent learning from very small groups
-        'reg_alpha': 0.5,             # L1 regularization
-        'reg_lambda': 1.0,            # L2 regularization
-        'gamma': 0.1,                 # Minimum loss reduction for split
+        'max_depth': 4,
+        'learning_rate': 0.03,
+        'n_estimators': 500,
+        'subsample': 0.7,
+        'colsample_bytree': 0.7,
+        'min_child_weight': 5,
+        'reg_alpha': 0.5,
+        'reg_lambda': 1.0,
+        'gamma': 0.1,
         'random_state': 42,
         'eval_metric': 'logloss',
         'tree_method': 'hist',
