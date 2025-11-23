@@ -51,13 +51,6 @@ python train_ocsvm.py
 python train_lstm.py
 ```
 
-## Evaluation
-
-Each training script evaluates the model on:
-- **Training set** - Model performance on training data
-- **Test set (seen attacks)** - Performance on attack types seen during training
-- **Test set (unseen attacks)** - Performance on unseen attack variants (zero-day simulation)
-
 Compare results:
 ```bash
 python compare_models.py
