@@ -90,10 +90,13 @@ SecurityAnalysis/
 │   ├── ocsvm_results.json      # One-Class SVM metrics
 │   └── lstm_results.json       # LSTM metrics
 ├── templates/                  # Flask web templates
-│   └── index.html              # Dashboard UI
+│   ├── index.html              # Dashboard UI
+│   └── detection.html          # Live detection interface
 ├── Tuesday-WorkingHours.pcap_ISCX.csv  # Raw dataset
+├── 02-14-2018.csv              # External test dataset
 ├── data_preparation.py         # Data cleaning and splitting
 ├── feature_engineering.py      # Feature preprocessing
+├── tune_threshold.py          # Threshold optimization
 ├── train_xgboost.py           # XGBoost training
 ├── train_ocsvm.py             # One-Class SVM training
 ├── train_lstm.py              # LSTM training
@@ -103,10 +106,4 @@ SecurityAnalysis/
 └── README.md                  # This file
 ```
 
-## Evaluation Metrics
 
-- **Accuracy**: Overall correctness
-- **Precision**: True positives / (True positives + False positives)
-- **Recall**: True positives / (True positives + False negatives)
-- **F1-Score**: Harmonic mean of precision and recall
-- **Generalization Gap**: Performance difference between seen and unseen attacks
