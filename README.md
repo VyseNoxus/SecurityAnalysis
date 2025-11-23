@@ -25,10 +25,14 @@ The project uses the CICIDS2017 Tuesday-WorkingHours.pcap_ISCX.csv dataset conta
 pip install -r requirements.txt
 ```
 
-2. Prepare the dataset:
+2. Prepare the dataset: (Tuesday-WorkingHours.pcap_ISCX)
 ```bash
 python data_preparation.py
 python feature_engineering.py
+```
+
+3. Testing on external dataset: (02-14-2018.csv)
+```bash
 python tune_threshold.py
 ```
 
